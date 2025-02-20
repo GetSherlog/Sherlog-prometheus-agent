@@ -1,7 +1,7 @@
 from slack_bolt.async_app import AsyncApp
 from slack_bolt.adapter.fastapi.async_handler import AsyncSlackRequestHandler
+from typing import Dict, Any, Callable
 import re
-from typing import Dict, Any
 
 from ...config import settings
 from ...core.agent import ObservabilityAgent
@@ -12,8 +12,8 @@ class SlackBot:
     
     def __init__(self):
         self.app = AsyncApp(
-            token=settings.SLACK_BOT_TOKEN,
-            signing_secret=settings.SLACK_APP_TOKEN
+            token=settings.slack.bot_token.get_secret_value(),
+            signing_secret=settings.slack.app_token.get_secret_value()
         )
         self.handler = AsyncSlackRequestHandler(self.app)
         backend = ObservabilityBackendFactory.create_backend("prometheus", None)
@@ -23,7 +23,7 @@ class SlackBot:
     def _setup_event_handlers(self):
         """Set up event handlers for the Slack bot."""
         @self.app.event("app_mention")
-        async def handle_mention(event, say):
+        async def handle_mention(event: Dict[str, Any], say: Callable[..., Any]):
             """Handle when the bot is mentioned in a channel."""
             try:
                 # Extract the actual message (remove the bot mention)
@@ -35,7 +35,7 @@ class SlackBot:
                 await say(error_message)
 
         @self.app.event("message")
-        async def handle_direct_message(event, say):
+        async def handle_direct_message(event: Dict[str, Any], say: Callable[..., Any]):
             """Handle direct messages to the bot."""
             try:
                 if event.get('channel_type') == 'im':

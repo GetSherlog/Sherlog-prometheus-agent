@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException, Query
+"""FastAPI router for Prometheus endpoints."""
+
+from fastapi import APIRouter, HTTPException, Query, Request, Depends
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-from ..core.prometheus import prometheus_client
-from ..core.llm import llm_manager
+from ..core.agent import ObservabilityAgent
+from ..core.exceptions import SherlogError
 
 router = APIRouter()
 
@@ -22,8 +24,18 @@ class QueryResponse(BaseModel):
     result: Dict[str, Any]
     graph_html: Optional[str] = None
 
+async def get_agent(request: Request) -> ObservabilityAgent:
+    """Get the ObservabilityAgent from application state."""
+    agent = request.app.state.agent
+    if not agent:
+        raise HTTPException(
+            status_code=503,
+            detail="ObservabilityAgent not initialized"
+        )
+    return agent
+
 @router.post("/query", response_model=QueryResponse)
-async def query_metrics(request: QueryRequest):
+async def query_metrics(request: QueryRequest, agent: ObservabilityAgent = Depends(get_agent)):
     """
     Execute a natural language query against Prometheus.
     
@@ -31,44 +43,31 @@ async def query_metrics(request: QueryRequest):
     a range query will be performed instead of an instant query.
     """
     try:
-        # Translate natural language to PromQL
-        promql = await llm_manager.translate_to_promql(
-            request.query,
-            context=request.context
-        )
-        
-        # Execute the query
+        # Add time range to context if specified
+        context = request.context or {}
         if request.start_time and request.end_time:
-            result = await prometheus_client.query_range(
-                query=promql,
-                start_time=request.start_time,
-                end_time=request.end_time,
-                step=request.step
-            )
-        else:
-            result = await prometheus_client.query(promql)
+            context.update({
+                "time_range": f"{int((request.end_time - request.start_time).total_seconds())}s",
+                "start_time": request.start_time.isoformat(),
+                "end_time": request.end_time.isoformat(),
+                "step": request.step
+            })
         
-        # Format the results
-        formatted_result = prometheus_client.format_result(
-            result,
-            query_type="range" if request.start_time else "instant"
-        )
-        
-        # Generate graph for range queries
-        graph_html = None
-        if request.start_time and formatted_result["type"] == "matrix":
-            graph_html = prometheus_client.generate_graph(
-                formatted_result,
-                title=request.query
-            )
+        # Process query using agent
+        result = await agent.process_query(request.query, context)
         
         return QueryResponse(
             natural_query=request.query,
-            promql=promql,
-            result=formatted_result,
-            graph_html=graph_html
+            promql=result.result.get("promql", ""),
+            result=result.result,
+            graph_html=result.result.get("graph_html")
         )
     
+    except SherlogError as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail=str(e)
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -78,16 +77,22 @@ async def query_metrics(request: QueryRequest):
 @router.get("/translate")
 async def translate_query(
     query: str = Query(..., description="Natural language query to translate"),
-    context: Optional[str] = Query(None, description="Additional context for translation")
+    context: Optional[str] = Query(None, description="Additional context for translation"),
+    agent: ObservabilityAgent = Depends(get_agent)
 ):
     """Translate a natural language query to PromQL without executing it."""
     try:
         context_dict = {"additional_info": context} if context else None
-        promql = await llm_manager.translate_to_promql(query, context=context_dict)
+        result = await agent.process_query(query, context_dict)
         return {
             "natural_query": query,
-            "promql": promql
+            "promql": result.result.get("promql", "")
         }
+    except SherlogError as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail=str(e)
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -96,15 +101,21 @@ async def translate_query(
 
 @router.get("/explain")
 async def explain_query(
-    query: str = Query(..., description="PromQL query to explain")
+    query: str = Query(..., description="PromQL query to explain"),
+    agent: ObservabilityAgent = Depends(get_agent)
 ):
     """Generate a natural language explanation of a PromQL query."""
     try:
-        explanation = await llm_manager.explain_promql(query)
+        result = await agent.process_query(f"Explain this PromQL query: {query}")
         return {
             "promql": query,
-            "explanation": explanation
+            "explanation": result.result.get("explanation", "")
         }
+    except SherlogError as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail=str(e)
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
