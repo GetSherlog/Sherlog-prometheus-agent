@@ -1,123 +1,95 @@
-# Sherlog-prometheus-agent 🔍
+# Sherlog Prometheus Agent
 
-A natural language interface for Prometheus metrics, powered by AI and delivered through Slack.
+An LLM-powered agent for querying and analyzing observability data using natural language.
 
-## Overview
+## Features
 
-Sherlog-prometheus-agent enables teams to query Prometheus metrics using natural language through Slack. It translates everyday language into PromQL queries, making observability data more accessible to everyone on your team.
+- Natural language queries for Prometheus metrics and Loki logs
+- Automated analysis and correlation of metrics and logs
+- Integration with Grafana for visualization
+- Support for custom backends and query engines
 
-### Key Features
+## Demo Application
 
-- 🤖 **Natural Language Interface**: Query Prometheus metrics using plain English
-- 💬 **Slack Integration**: Get metrics directly in your team's Slack channels
-- 🔒 **Flexible LLM Support**: Use local LLMs (via Ollama/llama-cpp-python) or OpenAI
-- ⚡ **FastAPI Backend**: High-performance API with async support
-- 🐳 **Easy Deployment**: Quick setup with Docker Compose
-- 🔄 **Context-Aware**: Supports multi-turn conversations and follow-up questions
+The project includes a demo application that simulates a real-world service with:
 
-## Quick Demo
-
-Want to try Sherlog without setting up Slack or a production Prometheus instance? We've got you covered!
-
-### Demo Prerequisites
-
-- Docker and Docker Compose
-- OpenAI API key (optional - you can use local LLM with Ollama instead)
+- Active user metrics
+- Order processing statistics
+- System performance metrics (CPU, Memory)
+- Various log levels (INFO, WARNING, ERROR)
+- HTTP request metrics
 
 ### Running the Demo
 
-1. Clone the repository:
+1. Start the demo stack:
 ```bash
-git clone https://github.com/yourusername/sherlog-prometheus-agent.git
-cd sherlog-prometheus-agent
+cd app/demo
+docker-compose up --build
 ```
 
-2. Run the setup script:
+This will start:
+- Demo FastAPI application (port 8000)
+- Prometheus (port 9090)
+- Loki (port 3100)
+- Grafana (port 3000)
+- Promtail for log collection
+- Observability Agent (port 5000)
+
+2. Try example queries:
 ```bash
-chmod +x demo/setup.sh
-./demo/setup.sh
+cd app/demo
+python agent_demo.py
 ```
 
-3. The script will:
-   - Create a `.env` file with demo settings
-   - Start a local Prometheus instance
-   - Launch a sample application that generates metrics
-   - Start the Sherlog API
+Example queries you can try:
+- "Show me the error rate in the last hour"
+- "What's the current CPU and memory usage?"
+- "Show me all failed orders in the last 30 minutes"
+- "What's the average request latency by endpoint?"
+- "Are there any system performance issues?"
+- "Show me the correlation between high CPU usage and error rates"
 
-4. Visit http://localhost:8000/docs to try out the API directly
-   - Try natural language queries like:
-     - "Show me the total number of requests to the sample app"
-     - "What's the average request latency for the API endpoints?"
-     - "Show me the error rate in the last 5 minutes"
-     - "Graph the request count by endpoint for the last hour"
+### Demo Metrics and Logs
 
-5. To stop the demo:
-```bash
-docker-compose -f docker-compose.demo.yml down
-```
+The demo application generates:
 
-## Production Setup
+1. Metrics:
+   - `active_users`: Number of active users (50-200 range)
+   - `orders_processed`: Order processing counter with status labels
+   - `cpu_usage_percent`: Simulated CPU usage (20-80%)
+   - `memory_usage_percent`: Simulated memory usage (30-90%)
+   - `http_requests_total`: HTTP request counter
+   - `http_request_duration_seconds`: Request latency histogram
 
-### Prerequisites
+2. Logs:
+   - INFO: Active user counts and successful orders
+   - WARNING: High CPU/memory usage alerts
+   - ERROR: Failed orders and system errors
+   - Various error scenarios (DB timeouts, API issues, etc.)
 
-- Docker and Docker Compose
-- A Slack workspace with bot permissions
-- A Prometheus instance
-- (Optional) OpenAI API key or local LLM setup
+### Accessing Services
 
-### Installation
+- Demo App: http://localhost:8000
+  - `/` - Root endpoint
+  - `/metrics` - Prometheus metrics
+  - `/error` - Test error endpoint
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/sherlog-prometheus-agent.git
-cd sherlog-prometheus-agent
-```
+- Prometheus: http://localhost:9090
+  - View raw metrics
+  - Execute PromQL queries
+  - Check targets status
 
-2. Copy the example environment file:
-```bash
-cp .env.example .env
-```
+- Grafana: http://localhost:3000 (admin/admin)
+  - Pre-configured datasources for Prometheus and Loki
+  - Create dashboards for metrics and logs
+  - View query results
 
-3. Configure your environment variables in `.env`:
-```
-SLACK_BOT_TOKEN=xoxb-your-token
-SLACK_APP_TOKEN=xapp-your-token
-PROMETHEUS_URL=http://your-prometheus:9090
-LLM_PROVIDER=openai  # or 'ollama' for local LLM
-OPENAI_API_KEY=your-key  # if using OpenAI
-```
+## Development Setup
 
-4. Start the application:
-```bash
-docker-compose up -d
-```
-
-### Usage Examples
-
-Ask questions in your Slack channel like:
-
-- "What's the CPU usage of the authentication service in the last hour?"
-- "Show me error rates for the payment service"
-- "What's the memory consumption of all pods in the production namespace?"
-- "Graph the latency of the API gateway for the last 24 hours"
-
-## Architecture
-
-The project consists of several key components:
-
-- **FastAPI Backend**: Handles request processing and API endpoints
-- **LLM Integration**: Translates natural language to PromQL using LangChain
-- **Prometheus Client**: Executes PromQL queries and retrieves metrics
-- **Slack Bot**: Manages Slack interactions and message handling
-
-## Development
-
-### Local Development Setup
-
-1. Create a virtual environment:
+1. Create virtual environment:
 ```bash
 python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 2. Install dependencies:
@@ -125,33 +97,36 @@ source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 pip install -r requirements.txt
 ```
 
-3. Run the development server:
+3. Run tests:
 ```bash
-uvicorn app.main:app --reload
+pytest tests/
 ```
 
-### Running Tests
+## Project Structure
 
-```bash
-pytest
+```
+app/
+├── core/                 # Core agent functionality
+│   ├── agent.py         # Main agent implementation
+│   ├── backends/        # Backend implementations
+│   ├── models/          # Data models
+│   ├── tools/           # Agent tools
+│   └── visualizations/  # Visualization utilities
+├── demo/                # Demo application
+│   ├── main.py         # FastAPI demo app
+│   ├── agent_demo.py   # Demo script
+│   └── docker-compose.yml
+└── tests/              # Test suite
 ```
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests
+5. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-- 📚 [Documentation](docs/)
-- 🐛 [Issue Tracker](../../issues)
-- 💬 [Discussions](../../discussions)
-
-## Acknowledgments
-
-- The Prometheus team for their excellent monitoring solution
-- The LangChain community for their LLM tools
-- The FastAPI team for their modern web framework 
+MIT License - see LICENSE file for details 
