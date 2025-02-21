@@ -36,6 +36,51 @@ For testing and development, we provide a full demo environment with monitoring 
 docker compose -f docker-compose.demo.yml up --build
 ```
 
+#### Demo Script Options
+
+The `start_demo.sh` script supports various configuration options:
+
+```bash
+Usage: ./start_demo.sh [options]
+
+Options:
+  -h, --help                 Show this help message
+  --llm-provider VALUE       Set LLM provider (gemini, openai, ollama)
+  --gemini-key VALUE         Set Gemini API key
+  --openai-key VALUE         Set OpenAI API key
+  --prometheus-url VALUE     Set Prometheus URL
+  --cache-type VALUE         Set cache type (memory, redis)
+  --logging-level VALUE      Set logging level (INFO, DEBUG, etc.)
+```
+
+Example usages:
+
+1. Basic usage with Gemini:
+```bash
+./start_demo.sh --gemini-key your-key
+```
+
+2. Use OpenAI instead:
+```bash
+./start_demo.sh --llm-provider openai --openai-key your-key
+```
+
+3. Custom configuration:
+```bash
+./start_demo.sh \
+  --llm-provider gemini \
+  --gemini-key your-key \
+  --prometheus-url http://custom-prometheus:9090 \
+  --cache-type redis \
+  --logging-level DEBUG
+```
+
+4. Using environment variables:
+```bash
+export GEMINI_API_KEY=your-key
+./start_demo.sh
+```
+
 The demo scripts provide a convenient way to manage the demo environment:
 
 #### `start_demo.sh`
@@ -234,16 +279,22 @@ git clone https://github.com/yourusername/sherlog.git
 cd sherlog
 ```
 
-2. Run the setup script:
+2. Run the setup script with your API key:
 ```bash
-chmod +x setup.sh
-./setup.sh
+chmod +x setup.sh start_demo.sh stop_demo.sh
+./start_demo.sh --gemini-key your-api-key
 ```
 
-3. Start both frontend and backend:
+You can customize the setup using various options:
 ```bash
-cd frontend
-npm run dev:all
+# Show all available options
+./start_demo.sh --help
+
+# Example: Use OpenAI instead of Gemini
+./start_demo.sh --llm-provider openai --openai-key your-openai-key
+
+# Example: Configure caching and logging
+./start_demo.sh --gemini-key your-key --cache-type redis --logging-level DEBUG
 ```
 
 The application will be available at http://localhost:3000
@@ -265,13 +316,32 @@ cd frontend
 npm install
 ```
 
-3. Create necessary environment files:
+3. Configure environment:
+
+Option 1: Using environment variables:
 ```bash
-# In the root directory
+# Required: Set LLM provider and API key
+export LLM__PROVIDER=gemini
+export GEMINI_API_KEY=your-api-key
+
+# Optional: Configure other settings
+export CACHE__TYPE=memory
+export LOGGING__LEVEL=INFO
+```
+
+Option 2: Create .env file:
+```bash
+# Copy example configuration
 cp .env.example .env
 
-# In the frontend directory
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+# Edit .env file with your settings
+# Required settings:
+LLM__PROVIDER=gemini
+GEMINI_API_KEY=your-api-key
+
+# Optional settings:
+CACHE__TYPE=memory
+LOGGING__LEVEL=INFO
 ```
 
 4. Start the servers:
@@ -284,6 +354,11 @@ python -m uvicorn app.main:app --reload
 cd frontend
 npm run dev
 ```
+
+The application will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
 
 ## Project Structure
 

@@ -4,13 +4,34 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-demo-mode}
-      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-demo-mode}
-      - PROMETHEUS_URL=${PROMETHEUS_URL:-http://prometheus:9090}
-      - LOKI_URL=${LOKI_URL:-http://loki:3100}
-      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - REDIS_URL=redis://redis:6379/0
+      # LLM Configuration
+      - LLM__PROVIDER=${LLM__PROVIDER:-gemini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LLM__GEMINI_MODEL=${LLM__GEMINI_MODEL:-gemini-2.0-flash}
+      # Optional LLM providers
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LLM__OLLAMA_HOST=${LLM__OLLAMA_HOST:-}
+      
+      # Prometheus Configuration
+      - PROMETHEUS__URL=${PROMETHEUS__URL:-http://prometheus:9090}
+      - PROMETHEUS__TIMEOUT=${PROMETHEUS__TIMEOUT:-30}
+      - PROMETHEUS__MAX_RETRIES=${PROMETHEUS__MAX_RETRIES:-3}
+      - PROMETHEUS__RETRY_BACKOFF=${PROMETHEUS__RETRY_BACKOFF:-1.5}
+      
+      # Cache Configuration
+      - CACHE__TYPE=${CACHE__TYPE:-memory}
+      - CACHE__TTL=${CACHE__TTL:-3600}
+      
+      # Optional Slack Integration
+      - SLACK__ENABLED=${SLACK__ENABLED:-false}
+      - SLACK__BOT_TOKEN=${SLACK__BOT_TOKEN:-}
+      - SLACK__APP_TOKEN=${SLACK__APP_TOKEN:-}
+      - SLACK__DEFAULT_CHANNEL=${SLACK__DEFAULT_CHANNEL:-monitoring}
+      
+      # Redis Configuration (if using redis cache)
+      - REDIS__URL=${REDIS__URL:-redis://redis:6379/0}
+      - REDIS__MAX_CONNECTIONS=${REDIS__MAX_CONNECTIONS:-10}
+      - REDIS__TIMEOUT=${REDIS__TIMEOUT:-5}
     depends_on:
       - redis
       - prometheus
@@ -38,17 +59,11 @@ services:
         loki-external-labels: "container_name=redis"
 
   prometheus:
-    image: prom/prometheus:v2.45.0
+    image: prom/prometheus:latest
     ports:
       - "9090:9090"
     volumes:
-      - ./demo/prometheus:/etc/prometheus
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - ./app/demo/prometheus:/etc/prometheus
     networks:
       - sherlog-network
     logging:
@@ -58,14 +73,11 @@ services:
         loki-external-labels: "container_name=prometheus"
 
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:latest
     ports:
       - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
     networks:
       - sherlog-network
-    volumes:
-      - ./demo/loki:/etc/loki
 
   promtail:
     image: grafana/promtail:2.9.0
@@ -80,19 +92,19 @@ services:
       - loki
 
   grafana:
-    image: grafana/grafana:10.0.0
+    image: grafana/grafana:latest
     ports:
       - "3000:3000"
-    depends_on:
-      - loki
-      - prometheus
-    networks:
-      - sherlog-network
-    volumes:
-      - ./demo/grafana/datasources:/etc/grafana/provisioning/datasources
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./app/demo/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - sherlog-network
     logging:
       driver: loki
       options:

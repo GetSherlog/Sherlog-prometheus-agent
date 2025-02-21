@@ -11,6 +11,8 @@ from .backends.base import ObservabilityBackend
 from .tools.observability import setup_observability_tools
 from .tools.logai_tools import setup_logai_tools
 from .prompts import OBSERVABILITY_SYSTEM_PROMPT
+from .settings import llm_settings
+from .models.llm import model_factory
 
 class ObservabilityAgent:
     """
@@ -24,9 +26,14 @@ class ObservabilityAgent:
         
         Args:
             backend: The observability backend to use
-            model: The AI model to use (default: None, will use pydantic_ai's default)
+            model: The AI model to use (default: None, will use configured model)
         """
         self.backend = backend
+        
+        # Configure model based on settings if not provided
+        if model is None:
+            model = model_factory.create_model(llm_settings)
+                
         self.agent = Agent(
             model,
             deps_type=ObservabilityContext,

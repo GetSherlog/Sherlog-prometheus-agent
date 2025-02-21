@@ -3,13 +3,17 @@ import aiohttp
 from datetime import datetime, timedelta
 import pandas as pd
 import plotly.express as px
-from ..config import settings
+from .settings import prometheus_settings
 
 class PrometheusClient:
     """Client for interacting with Prometheus API."""
     
     def __init__(self, base_url: Optional[str] = None):
-        self.base_url = base_url or settings.PROMETHEUS_URL
+        self.base_url = base_url or prometheus_settings.url
+        self.timeout = prometheus_settings.timeout
+        self.max_retries = prometheus_settings.max_retries
+        self.retry_backoff = prometheus_settings.retry_backoff
+        
         if not self.base_url:
             raise ValueError("Prometheus URL is required")
     
@@ -17,7 +21,11 @@ class PrometheusClient:
         """Execute an instant query against Prometheus."""
         async with aiohttp.ClientSession() as session:
             params = {'query': query}
-            async with session.get(f"{self.base_url}/api/v1/query", params=params) as response:
+            async with session.get(
+                f"{self.base_url}/api/v1/query",
+                params=params,
+                timeout=self.timeout
+            ) as response:
                 if response.status != 200:
                     error_text = await response.text()
                     raise Exception(f"Prometheus query failed: {error_text}")
@@ -29,14 +37,18 @@ class PrometheusClient:
                          end_time: datetime,
                          step: str = "15s") -> Dict[str, Any]:
         """Execute a range query against Prometheus."""
+        params = {
+            'query': query,
+            'start': start_time.timestamp(),
+            'end': end_time.timestamp(),
+            'step': step
+        }
         async with aiohttp.ClientSession() as session:
-            params = {
-                'query': query,
-                'start': start_time.timestamp(),
-                'end': end_time.timestamp(),
-                'step': step
-            }
-            async with session.get(f"{self.base_url}/api/v1/query_range", params=params) as response:
+            async with session.get(
+                f"{self.base_url}/api/v1/query_range",
+                params=params,
+                timeout=self.timeout
+            ) as response:
                 if response.status != 200:
                     error_text = await response.text()
                     raise Exception(f"Prometheus range query failed: {error_text}")
