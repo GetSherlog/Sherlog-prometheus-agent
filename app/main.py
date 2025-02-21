@@ -1,14 +1,26 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from .config import Settings
-from .routers import prometheus, slack, health, chat
-from .integrations.slack import initialize_slack_bot
+from fastapi.responses import FileResponse
+from contextlib import asynccontextmanager
+from app.config import Settings
+from app.routers import prometheus, slack, health, chat
+from app.integrations.slack import initialize_slack_bot
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        await initialize_slack_bot()
+        yield
+    except Exception as e:
+        print(f"Error during startup: {e}")
+        raise HTTPException(status_code=500, detail="Failed to initialize services")
 
 app = FastAPI(
     title="Sherlog Prometheus Agent",
     description="Natural language interface for Prometheus metrics",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -29,17 +41,7 @@ app.include_router(prometheus.router, prefix="/api/v1/prometheus", tags=["promet
 app.include_router(slack.router, prefix="/api/v1/slack", tags=["slack"])
 app.include_router(chat.router, prefix="/api", tags=["chat"])
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize services on startup."""
-    try:
-        # Initialize Slack bot
-        await initialize_slack_bot()
-    except Exception as e:
-        print(f"Error during startup: {e}")
-        raise HTTPException(status_code=500, detail="Failed to initialize services")
-
 @app.get("/")
 async def root():
     """Serve the chat interface."""
-    return StaticFiles(directory="app/static").get_response("index.html") 
+    return FileResponse("app/static/index.html") 

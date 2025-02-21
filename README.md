@@ -9,6 +9,46 @@
 - 📊 Integration with Grafana for visualization
 - 🔌 Support for custom backends and query engines
 
+## 🚀 Getting Started
+
+### Production Setup
+
+For production deployment, use the standard docker-compose file:
+
+```bash
+docker compose up --build
+```
+
+This starts the core services:
+- 🤖 Sherlog Agent (port 8000)
+- 📝 Redis for caching
+
+### Demo Environment
+
+For testing and development, we provide a full demo environment with monitoring stack:
+
+```bash
+docker compose -f docker-compose.demo.yml up --build
+```
+
+The demo environment includes:
+- 🤖 Sherlog Agent (port 8000)
+- 📝 Redis for caching
+- 📊 Prometheus (port 9090)
+- 📝 Loki (port 3100)
+- 📈 Grafana (port 3000)
+- 📡 Promtail for log collection
+- 📊 Node Exporter for system metrics
+- 🌟 Sample Application (port 8080)
+
+All services in the demo environment are configured with:
+- Pre-configured monitoring
+- Log aggregation via Loki
+- Metrics collection via Prometheus
+- Ready-to-use Grafana dashboards
+
+For detailed information about the demo environment, see [DEMO.md](docs/DEMO.md)
+
 ## 🎮 Demo Application
 
 The project includes a demo application that simulates a real-world service with:
@@ -155,4 +195,112 @@ MIT License - see [LICENSE](LICENSE) file for details
 ---
 <div align="center">
 Made with ❤️ for the observability community
-</div> 
+</div>
+
+# Sherlog
+
+A powerful log analysis and metrics monitoring tool with an AI-powered chat interface.
+
+## Quick Start
+
+### Easy Setup (Recommended)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/sherlog.git
+cd sherlog
+```
+
+2. Run the setup script:
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+3. Start both frontend and backend:
+```bash
+cd frontend
+npm run dev:all
+```
+
+The application will be available at http://localhost:3000
+
+### Manual Setup
+
+If you prefer to set up manually:
+
+1. Set up the Python environment:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+2. Set up the frontend:
+```bash
+cd frontend
+npm install
+```
+
+3. Create necessary environment files:
+```bash
+# In the root directory
+cp .env.example .env
+
+# In the frontend directory
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+```
+
+4. Start the servers:
+```bash
+# In one terminal (backend)
+source venv/bin/activate
+python -m uvicorn app.main:app --reload
+
+# In another terminal (frontend)
+cd frontend
+npm run dev
+```
+
+## Project Structure
+
+```
+sherlog/
+├── app/                 # Backend application
+│   ├── core/           # Core functionality
+│   ├── routers/        # API routes
+│   └── main.py         # Main application entry
+├── frontend/           # Next.js frontend
+│   ├── app/           # Frontend pages
+│   ├── components/    # React components
+│   └── lib/          # Frontend utilities
+├── tests/             # Test suite
+└── docs/              # Documentation
+```
+
+## Features
+
+- 🤖 AI-powered log analysis
+- 📊 Prometheus/Loki/Grafana integration
+- 📝 Natural language queries
+- 📈 Real-time metrics monitoring
+- 🎨 Modern web interface
+- 🔄 Real-time streaming responses
+
+## Development
+
+- Backend API: http://localhost:8000
+- Frontend: http://localhost:3000
+- API Documentation: http://localhost:8000/docs
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details. 

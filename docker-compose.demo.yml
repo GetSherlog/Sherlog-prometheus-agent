@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build: .
@@ -9,7 +7,7 @@ services:
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-demo-mode}
       - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-demo-mode}
       - PROMETHEUS_URL=${PROMETHEUS_URL:-http://prometheus:9090}
-      - LOKI_URL=http://loki:3100
+      - LOKI_URL=${LOKI_URL:-http://loki:3100}
       - LLM_PROVIDER=${LLM_PROVIDER:-openai}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - REDIS_URL=redis://redis:6379/0
@@ -40,7 +38,7 @@ services:
         loki-external-labels: "container_name=redis"
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.45.0
     ports:
       - "9090:9090"
     volumes:
@@ -60,7 +58,7 @@ services:
         loki-external-labels: "container_name=prometheus"
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:2.9.0
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
@@ -70,7 +68,7 @@ services:
       - ./demo/loki:/etc/loki
 
   promtail:
-    image: grafana/promtail:latest
+    image: grafana/promtail:2.9.0
     volumes:
       - ./demo/promtail:/etc/promtail
       - /var/log:/var/log
@@ -80,6 +78,26 @@ services:
       - sherlog-network
     depends_on:
       - loki
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    ports:
+      - "3000:3000"
+    depends_on:
+      - loki
+      - prometheus
+    networks:
+      - sherlog-network
+    volumes:
+      - ./demo/grafana/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-external-labels: "container_name=grafana"
 
   node-exporter:
     image: prom/node-exporter:latest
