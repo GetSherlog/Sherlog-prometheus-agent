@@ -3,11 +3,14 @@ LLM-powered agent for interacting with observability backends using PydanticAI.
 """
 
 from typing import Dict, Any, Optional
-from pydantic_ai import Agent
+from pydantic_ai.agent import Agent
+from pydantic_ai.models import KnownModelName, Model
 
 from .models.observability import ObservabilityContext, QueryResult
 from .backends.base import ObservabilityBackend
 from .tools.observability import setup_observability_tools
+from .tools.logai_tools import setup_logai_tools
+from .prompts import OBSERVABILITY_SYSTEM_PROMPT
 
 class ObservabilityAgent:
     """
@@ -15,23 +18,23 @@ class ObservabilityAgent:
     Uses PydanticAI's agent and tools.
     """
     
-    def __init__(self, backend: ObservabilityBackend):
+    def __init__(self, backend: ObservabilityBackend, model: Optional[KnownModelName | Model] = None):
+        """
+        Initialize the observability agent.
+        
+        Args:
+            backend: The observability backend to use
+            model: The AI model to use (default: None, will use pydantic_ai's default)
+        """
         self.backend = backend
         self.agent = Agent(
-            'openai:gpt-4',  # or your chosen model
+            model,
             deps_type=ObservabilityContext,
-            system_prompt="""You are an expert at querying and analyzing observability data.
-            Use the available tools to gather metrics and logs, analyze patterns,
-            and provide insights about system behavior.
-            
-            Always consider:
-            1. Time ranges in the query
-            2. Service names and contexts
-            3. Related metrics and logs
-            4. Potential correlations
-            """
+            system_prompt=OBSERVABILITY_SYSTEM_PROMPT
         )
+        # Set up both tool sets
         setup_observability_tools(self.agent)
+        setup_logai_tools(self.agent)
     
     async def process_query(self, query: str, context: Optional[Dict[str, Any]] = None) -> QueryResult:
         """
