@@ -85,4 +85,56 @@ docker-compose.override.yml
 .env.*
 !.env.example
 tmp/
-.DS_Store 
+.DS_Store
+
+# Frontend - Node
+frontend/node_modules/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+frontend/.yarn/
+frontend/.pnp.*
+
+# Frontend - Next.js
+frontend/.next/
+frontend/out/
+frontend/.vercel
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# Frontend - Build
+frontend/build/
+frontend/dist/
+frontend/.next/
+frontend/out/
+
+# Frontend - Environment
+frontend/.env
+frontend/.env.*
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Frontend - Coverage
+frontend/coverage/
+
+# Frontend - PWA
+frontend/public/sw.js
+frontend/public/workbox-*.js
+frontend/public/worker-*.js
+frontend/public/sw.js.map
+frontend/public/workbox-*.js.map
+frontend/public/worker-*.js.map
+
+# Frontend - Debug
+frontend/.debug/
+
+# Frontend - IDE
+frontend/.idea/
+frontend/.vscode/
+
+# Frontend - Misc
+frontend/.DS_Store
+frontend/Thumbs.db 
