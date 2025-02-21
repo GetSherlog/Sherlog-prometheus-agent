@@ -28,8 +28,31 @@ This starts the core services:
 For testing and development, we provide a full demo environment with monitoring stack:
 
 ```bash
+# Option 1: Using demo scripts (Recommended)
+./start_demo.sh  # Start the complete demo environment
+./stop_demo.sh   # Stop all demo services
+
+# Option 2: Using docker-compose directly
 docker compose -f docker-compose.demo.yml up --build
 ```
+
+The demo scripts provide a convenient way to manage the demo environment:
+
+#### `start_demo.sh`
+- 🚀 Automatically sets up required environment files
+- 📦 Starts all demo services (Prometheus, Loki, Grafana, etc.)
+- 🌐 Launches the Next.js frontend
+- 📝 Provides helpful information about available services and example queries
+- 🔗 Access URLs after startup:
+  - Main Dashboard: http://localhost:3000
+  - Demo App: http://localhost:8000
+  - Grafana: http://localhost:3000 (login: admin/admin)
+  - Prometheus: http://localhost:9090
+
+#### `stop_demo.sh`
+- 🛑 Gracefully stops the Next.js frontend
+- 🧹 Shuts down all demo services
+- 🗑️ Cleans up Docker resources
 
 The demo environment includes:
 - 🤖 Sherlog Agent (port 8000)
