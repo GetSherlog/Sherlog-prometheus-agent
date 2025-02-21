@@ -6,6 +6,10 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Enable Docker BuildKit
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
 # Default values
 GEMINI_API_KEY=${GEMINI_API_KEY:-""}
 LLM_PROVIDER=${LLM_PROVIDER:-"gemini"}
@@ -25,11 +29,15 @@ show_help() {
     echo "  --prometheus-url VALUE     Set Prometheus URL"
     echo "  --cache-type VALUE         Set cache type (memory, redis)"
     echo "  --logging-level VALUE      Set logging level (INFO, DEBUG, etc.)"
+    echo "  --no-cache                 Disable Docker build cache"
     echo
     echo "Example:"
     echo "  ./start_demo.sh --llm-provider gemini --gemini-key your-key"
     exit 0
 }
+
+# Additional build arguments
+BUILD_ARGS=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -61,6 +69,10 @@ while [[ $# -gt 0 ]]; do
             LOGGING_LEVEL="$2"
             shift 2
             ;;
+        --no-cache)
+            BUILD_ARGS="--no-cache"
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
             show_help
@@ -69,6 +81,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo -e "${BLUE}Starting Sherlog Demo...${NC}"
+echo -e "${BLUE}Docker BuildKit is enabled for optimized builds${NC}"
 
 # Export variables with proper prefixes
 export LLM__PROVIDER=${LLM_PROVIDER}
@@ -142,10 +155,10 @@ if [ ! -f "frontend/.env.local" ]; then
     echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > frontend/.env.local
 fi
 
-# Start the demo stack in the background
+# Start the demo stack in the background with BuildKit enabled
 echo -e "${BLUE}Starting demo stack (Prometheus, Loki, Grafana, etc.)...${NC}"
 cd app/demo
-docker-compose up --build -d
+docker compose up --build ${BUILD_ARGS} -d
 
 # Wait for services to be ready
 echo -e "${BLUE}Waiting for services to be ready...${NC}"
@@ -170,6 +183,7 @@ echo -e "\n${BLUE}Current Configuration:${NC}"
 echo -e "LLM Provider: ${GREEN}${LLM__PROVIDER}${NC}"
 echo -e "Cache Type: ${GREEN}${CACHE__TYPE}${NC}"
 echo -e "Logging Level: ${GREEN}${LOGGING__LEVEL}${NC}"
+echo -e "BuildKit: ${GREEN}Enabled${NC}"
 
 echo -e "\n${BLUE}Example queries you can try:${NC}"
 echo "- Show me the error rate in the last hour"
