@@ -369,16 +369,13 @@ show_container_status
 # Check for any stopped containers and show their logs
 check_container_logs
 
-# Start the frontend
-if [ "$(get_container_status app)" = "running" ]; then
-    echo -e "\n${BLUE}Starting Next.js frontend...${NC}"
-    cd ../../frontend
-    npm install
-    npm run dev &
-    FRONTEND_PID=$!
-else
-    echo -e "\n${RED}Main app container failed to start. Not starting frontend.${NC}"
-fi
+# Start frontend in development mode
+echo -e "${BLUE}Starting frontend in development mode...${NC}"
+cd frontend
+npm install
+npm run dev &
+FRONTEND_PID=$!
+cd ..
 
 # Show access information if services are running
 if [ "$(get_container_status app)" = "running" ]; then

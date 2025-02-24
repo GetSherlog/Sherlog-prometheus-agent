@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     gfortran \
     libblas-dev \
     liblapack-dev \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv using pip

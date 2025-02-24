@@ -5,7 +5,7 @@ Base classes for observability backends.
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List, Union
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class MetricLabel(BaseModel):
     """Model for metric labels."""
@@ -40,16 +40,18 @@ class LogsResponse(BaseModel):
     timestamps: List[datetime] = Field(..., description="Timestamps for each log message")
     metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional metadata")
 
-class QueryEngine(ABC):
+class QueryEngine(BaseModel, ABC):
     """Abstract base class for query engines."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
     @abstractmethod
     def build_query(self, **kwargs) -> str:
         """Build a query string from parameters."""
         pass
 
-class MetricsBackend(ABC):
+class MetricsBackend(BaseModel, ABC):
     """Abstract base class for metrics backends."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
     @abstractmethod
     async def query(self, query: str) -> MetricsResponse:
@@ -63,8 +65,9 @@ class MetricsBackend(ABC):
         """Execute a metrics query over a time range."""
         pass
 
-class LogsBackend(ABC):
+class LogsBackend(BaseModel, ABC):
     """Abstract base class for logs backends."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
     @abstractmethod
     async def query(self, query: str) -> LogsResponse:
@@ -78,8 +81,9 @@ class LogsBackend(ABC):
         """Execute a logs query over a time range."""
         pass
 
-class ObservabilityBackend(ABC):
+class ObservabilityBackend(BaseModel, ABC):
     """Abstract base class for complete observability backends."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
     @abstractmethod
     def get_metrics_backend(self) -> MetricsBackend:
