@@ -6,13 +6,12 @@ and validation.
 """
 
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional
 from pydantic import (
     Field,
-    SecretStr,
-    AnyHttpUrl,
-    validator,
+    field_validator,
     ValidationError,
+    HttpUrl,
 )
 from pydantic_settings import BaseSettings
 from functools import lru_cache
@@ -31,38 +30,72 @@ class LLMProvider(str, Enum):
     """Supported LLM providers."""
     OPENAI = "openai"
     OLLAMA = "ollama"
+    GEMINI = "gemini"
 
 class PrometheusSettings(BaseSettings):
     """Prometheus-specific configuration."""
-    url: AnyHttpUrl = Field(default="http://localhost:9090", description="Prometheus server URL")
+    url: str = Field(default="http://localhost:9090", description="Prometheus server URL")
     timeout: int = Field(default=30, description="Request timeout in seconds")
     max_retries: int = Field(default=3, description="Maximum number of retry attempts")
     retry_backoff: float = Field(default=1.5, description="Exponential backoff factor")
 
-    @validator('url')
-    def validate_prometheus_url(cls, v):
-        """Ensure Prometheus URL is valid."""
-        if not str(v).strip():
-            raise ValueError("Prometheus URL cannot be empty")
-        return v
+    @field_validator('url')
+    @classmethod
+    def validate_url(cls, v):
+        """Validate URL format."""
+        try:
+            HttpUrl(v)
+            return v
+        except ValidationError:
+            raise ValueError("Invalid URL format")
 
 class SlackSettings(BaseSettings):
     """Slack integration configuration."""
-    bot_token: SecretStr = Field(default="", description="Slack bot user OAuth token")
-    app_token: SecretStr = Field(default="", description="Slack app-level token")
+    bot_token: Optional[str] = Field(default="", description="Slack bot user OAuth token")
+    app_token: Optional[str] = Field(default="", description="Slack app-level token")
     default_channel: str = Field(default="monitoring", description="Default channel for notifications")
+    enabled: bool = Field(default=False, description="Whether Slack integration is enabled")
+
+    model_config = {
+        "extra": "allow"
+    }
 
 class LLMSettings(BaseSettings):
     """Language Model configuration."""
-    provider: LLMProvider = Field(default=LLMProvider.OPENAI, description="LLM provider selection")
-    openai_api_key: Optional[SecretStr] = Field(default="", description="OpenAI API key")
-    ollama_host: AnyHttpUrl = Field(default="http://localhost:11434", description="Ollama host URL")
+    provider: LLMProvider = Field(default=LLMProvider.GEMINI, description="LLM provider selection")
+    openai_api_key: Optional[str] = Field(default="", description="OpenAI API key")
+    gemini_api_key: Optional[str] = Field(default="", description="Google Gemini API key")
+    gemini_model: Optional[str] = Field(default="gemini-2.0-flash", description="Gemini model name")
+    ollama_host: str = Field(default="http://localhost:11434", description="Ollama host URL")
 
-    @validator('openai_api_key')
-    def validate_openai_key(cls, v, values):
+    @field_validator('ollama_host')
+    @classmethod
+    def validate_ollama_url(cls, v):
+        """Validate URL format."""
+        try:
+            HttpUrl(v)
+            return v
+        except ValidationError:
+            raise ValueError("Invalid URL format")
+
+    model_config = {
+        "extra": "allow"
+    }
+
+    @field_validator('openai_api_key')
+    @classmethod
+    def validate_openai_key(cls, v, info):
         """Ensure OpenAI key is present when OpenAI is selected."""
-        if values.get('provider') == LLMProvider.OPENAI and not v:
+        if info.data.get('provider') == LLMProvider.OPENAI and not v:
             raise ValueError("OpenAI API key is required when using OpenAI provider")
+        return v
+
+    @field_validator('gemini_api_key')
+    @classmethod
+    def validate_gemini_key(cls, v, info):
+        """Ensure Gemini key is present when Gemini is selected."""
+        if info.data.get('provider') == LLMProvider.GEMINI and not v:
+            raise ValueError("Gemini API key is required when using Gemini provider")
         return v
 
 class RedisSettings(BaseSettings):
@@ -74,6 +107,10 @@ class RedisSettings(BaseSettings):
     max_connections: int = Field(default=10, description="Maximum connection pool size")
     timeout: int = Field(default=5, description="Connection timeout in seconds")
 
+    model_config = {
+        "extra": "allow"
+    }
+
 class LoggingSettings(BaseSettings):
     """Logging configuration."""
     level: str = Field(default="INFO", description="Logging level")
@@ -84,6 +121,11 @@ class LoggingSettings(BaseSettings):
     file_path: Optional[Path] = Field(default=None, description="Log file path")
     rotation_size: str = Field(default="10MB", description="Log rotation size")
     backup_count: int = Field(default=5, description="Number of backup files to keep")
+    correlation_enabled: bool = Field(default=True, description="Enable correlation ID in logs")
+
+    model_config = {
+        "extra": "allow"
+    }
 
 class Settings(BaseSettings):
     """Main application settings."""
@@ -100,17 +142,21 @@ class Settings(BaseSettings):
     redis: RedisSettings = Field(default_factory=lambda: RedisSettings())
     logging: LoggingSettings = Field(default_factory=lambda: LoggingSettings())
 
-    class Config:
-        """Pydantic configuration."""
-        env_file = ".env"
-        case_sensitive = True
-        env_nested_delimiter = "__"
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": True,
+        "env_nested_delimiter": "__",
+        "extra": "allow",
+        "validate_default": True
+    }
 
-    @validator('environment')
-    def validate_production_settings(cls, v, values):
+    @field_validator('environment')
+    @classmethod
+    def validate_production_settings(cls, v, info):
         """Additional validation for production environment."""
         if v == Environment.PRODUCTION:
-            if values.get('debug'):
+            if info.data.get('debug'):
                 raise ValueError("Debug mode cannot be enabled in production")
         return v
 

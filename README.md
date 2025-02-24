@@ -28,9 +28,9 @@ This starts the core services:
 For testing and development, we provide a full demo environment with monitoring stack:
 
 ```bash
-# Option 1: Using demo scripts (Recommended)
-./start_demo.sh  # Start the complete demo environment
-./stop_demo.sh   # Stop all demo services
+# Option 1: Using demo script (Recommended)
+./sherlog.sh  # Start the complete demo environment
+# Use Ctrl+C to stop the demo when done
 
 # Option 2: Using docker-compose directly
 docker compose -f docker-compose.demo.yml up --build
@@ -38,36 +38,36 @@ docker compose -f docker-compose.demo.yml up --build
 
 #### Demo Script Options
 
-The `start_demo.sh` script supports various configuration options:
+The `sherlog.sh` script supports various configuration options:
 
 ```bash
-Usage: ./start_demo.sh [options]
+Usage: ./sherlog.sh [options]
 
 Options:
   -h, --help                 Show this help message
   --llm-provider VALUE       Set LLM provider (gemini, openai, ollama)
-  --gemini-key VALUE         Set Gemini API key
-  --openai-key VALUE         Set OpenAI API key
-  --prometheus-url VALUE     Set Prometheus URL
-  --cache-type VALUE         Set cache type (memory, redis)
-  --logging-level VALUE      Set logging level (INFO, DEBUG, etc.)
+  --gemini-key VALUE        Set Gemini API key
+  --openai-key VALUE        Set OpenAI API key
+  --prometheus-url VALUE    Set Prometheus URL
+  --cache-type VALUE        Set cache type (memory, redis)
+  --logging-level VALUE     Set logging level (INFO, DEBUG, etc.)
 ```
 
 Example usages:
 
 1. Basic usage with Gemini:
 ```bash
-./start_demo.sh --gemini-key your-key
+./sherlog.sh --gemini-key your-key
 ```
 
 2. Use OpenAI instead:
 ```bash
-./start_demo.sh --llm-provider openai --openai-key your-key
+./sherlog.sh --llm-provider openai --openai-key your-key
 ```
 
 3. Custom configuration:
 ```bash
-./start_demo.sh \
+./sherlog.sh \
   --llm-provider gemini \
   --gemini-key your-key \
   --prometheus-url http://custom-prometheus:9090 \
@@ -78,12 +78,12 @@ Example usages:
 4. Using environment variables:
 ```bash
 export GEMINI_API_KEY=your-key
-./start_demo.sh
+./sherlog.sh
 ```
 
-The demo scripts provide a convenient way to manage the demo environment:
+The demo script provides a convenient way to manage the demo environment:
 
-#### `start_demo.sh`
+#### `sherlog.sh`
 - 🚀 Automatically sets up required environment files
 - 📦 Starts all demo services (Prometheus, Loki, Grafana, etc.)
 - 🌐 Launches the Next.js frontend
@@ -93,11 +93,8 @@ The demo scripts provide a convenient way to manage the demo environment:
   - Demo App: http://localhost:8000
   - Grafana: http://localhost:3000 (login: admin/admin)
   - Prometheus: http://localhost:9090
-
-#### `stop_demo.sh`
-- 🛑 Gracefully stops the Next.js frontend
-- 🧹 Shuts down all demo services
-- 🗑️ Cleans up Docker resources
+- 🔍 Monitors container health and shows status
+- 🚫 Gracefully stops all services on Ctrl+C
 
 The demo environment includes:
 - 🤖 Sherlog Agent (port 8000)
@@ -281,20 +278,20 @@ cd sherlog
 
 2. Run the setup script with your API key:
 ```bash
-chmod +x setup.sh start_demo.sh stop_demo.sh
-./start_demo.sh --gemini-key your-api-key
+chmod +x setup.sh sherlog.sh
+./sherlog.sh --gemini-key your-api-key
 ```
 
 You can customize the setup using various options:
 ```bash
 # Show all available options
-./start_demo.sh --help
+./sherlog.sh --help
 
 # Example: Use OpenAI instead of Gemini
-./start_demo.sh --llm-provider openai --openai-key your-openai-key
+./sherlog.sh --llm-provider openai --openai-key your-openai-key
 
 # Example: Configure caching and logging
-./start_demo.sh --gemini-key your-key --cache-type redis --logging-level DEBUG
+./sherlog.sh --gemini-key your-key --cache-type redis --logging-level DEBUG
 ```
 
 The application will be available at http://localhost:3000
